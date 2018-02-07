@@ -29,7 +29,31 @@ TEST_F(IdentityTest, breathingTest)
 
     Identity<std::vector<int>> vi;
 
+    Identity<int> i2 = i;
+    ASSERT_EQ(i2, i);
+
+    const Identity<int> i3 = 3;
+    Identity<int> i3a = i3;
+    Identity<int> i3b;
+    i3b = i3a;
+
+    Identity<std::string> s1 = std::string{"test"};
+    ASSERT_EQ(std::string{"test"}, s1.value());
+
+    Identity<std::string> s2;
+    s2 = s1;
+    ASSERT_EQ(s2, s1);
+
+    Identity<std::string> s3;
+    s3 = std::move(s2);
+    ASSERT_EQ(s3, s1);
+
+    Identity<std::string> s4;
+    ASSERT_EQ(s2, s4);
+
+    ASSERT_NE(s2, s3);
 }
+
 
 TEST_F(IdentityTest, fmapTest)
 {

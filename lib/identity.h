@@ -19,14 +19,12 @@ class Identity
     T t;
   public:
     Identity() : t() {};
-    Identity(Identity const&) = default;
-    Identity(Identity&&) = default;
-    ~Identity() = default;
-    Identity(T const& t) : t(t) {}
+    Identity(T const& t) : t(t) {};
 
     T value() {return t;}
     T const& value() const {return t;}
 };
+
 
 template <typename T, typename Func>
 auto fmap(Identity<T> const& i, Func const& f)
@@ -38,6 +36,11 @@ auto fmap(Identity<T> const& i, Func const& f)
 template<typename T, typename U>
 bool operator==(Identity<T> t, Identity<U> u) {
     return t.value() == u.value();
+}
+
+template<typename T, typename U>
+bool operator!=(Identity<T> t, Identity<U> u) {
+    return t.value() != u.value();
 }
 
 // ============================================================================
