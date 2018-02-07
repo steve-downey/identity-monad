@@ -18,10 +18,27 @@ class Identity
 {
     T t;
   public:
-    Identity() : t() {}
+    Identity() : t() {};
+    Identity(Identity const&) = default;
+    Identity(Identity&&) = default;
+    ~Identity() = default;
     Identity(T const& t) : t(t) {}
+
+    T value() {return t;}
+    T const& value() const {return t;}
 };
 
+template <typename T, typename Func>
+auto fmap(Identity<T> const& i, Func const& f)
+    -> Identity<decltype(f(i.value()))> {
+    using Mapped = decltype(f(i.value()));
+    return Identity<Mapped>{f(i.value())};
+}
+
+template<typename T, typename U>
+bool operator==(Identity<T> t, Identity<U> u) {
+    return t.value() == u.value();
+}
 
 // ============================================================================
 //              INLINE FUNCTION AND FUNCTION TEMPLATE DEFINITIONS
