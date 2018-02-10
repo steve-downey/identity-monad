@@ -119,4 +119,14 @@ TEST_F(IdentityTest, bindTest)
     ASSERT_EQ(Identity<int>{6}, l6);
 }
 
+TEST_F(IdentityTest, joinTest)
+{
+    using namespace identity;
+    Identity<int> i = make(1);
+    Identity<Identity<int>> ii = make(i);
+    Identity<int> j = join(ii);
+
+    ASSERT_EQ(1, i.value());
+    ASSERT_EQ(1, j.value());
+}
 }

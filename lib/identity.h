@@ -60,6 +60,16 @@ auto bind(Identity<T> const& i, Func const& f)
     return std::invoke(f, i.value());
 }
 
+template <typename T>
+Identity<T> make(T t) {
+    return Identity<T>{t};
+}
+
+template <typename T>
+auto join(Identity<Identity<T>> i) {
+    return Identity<T>{i.value()};
+}
+
 template<typename T, typename U>
 bool operator==(Identity<T> t, Identity<U> u) {
     return t.value() == u.value();
