@@ -87,4 +87,36 @@ TEST_F(IdentityTest, fmapTest)
     ASSERT_EQ(Identity<int>{6}, l6);
 }
 
+TEST_F(IdentityTest, bindTest)
+{
+    using namespace identity;
+    Identity<int> i;
+    Identity<long> l;
+    Identity<char> c;
+
+    auto twice = [](auto i) -> Identity<decltype(2*i)> {return 2*i;};
+    auto i2 = bind(i, twice);
+    auto l2 = bind(l, twice);
+    auto c2 = bind(c, twice);
+
+    ASSERT_EQ(0, i2.value());
+    ASSERT_EQ(0, l2.value());
+    ASSERT_EQ(0, c2.value());
+
+    Identity<int> i3(3);
+    Identity<long> l3(3);
+    Identity<char> c3(3);
+
+    auto i6 = bind(i3, twice);
+    auto l6 = bind(l3, twice);
+    auto c6 = bind(c3, twice);
+
+    ASSERT_EQ(6, i6.value());
+    ASSERT_EQ(6, l6.value());
+    ASSERT_EQ(6, c6.value());
+
+    ASSERT_EQ(Identity<int>{6}, i6);
+    ASSERT_EQ(Identity<int>{6}, l6);
+}
+
 }
