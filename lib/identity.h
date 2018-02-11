@@ -20,13 +20,39 @@ template<typename T>
 class Identity
 {
     T t;
+
+    T const& value() const {return t;}
+
   public:
     Identity() : t() {};
     Identity(T const& t) : t(t) {};
 
-    T value() {return t;}
-    T const& value() const {return t;}
+    template <typename U, typename Func>
+    friend
+    auto fmap(Identity<U> const& i, Func const& f);
+
+    template <typename U, typename Func>
+    friend
+    auto bind(Identity<U> const& i, Func const& f);
+
+    template <typename U>
+    friend
+    auto join(Identity<Identity<U>> i);
+
+    template<typename U, typename V>
+    friend
+    bool operator==(Identity<U> t, Identity<V> u);
+
+    template<typename U, typename V>
+    friend
+    bool operator!=(Identity<U> t, Identity<V> u);
+
 };
+
+
+// ============================================================================
+//              INLINE FUNCTION AND FUNCTION TEMPLATE DEFINITIONS
+// ============================================================================
 
 template <typename T, typename Func>
 auto fmap(Identity<T> const& i, Func const& f)
@@ -80,9 +106,6 @@ bool operator!=(Identity<T> t, Identity<U> u) {
     return t.value() != u.value();
 }
 
-// ============================================================================
-//              INLINE FUNCTION AND FUNCTION TEMPLATE DEFINITIONS
-// ============================================================================
 
 
 }  // close package namespace

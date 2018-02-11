@@ -38,7 +38,7 @@ TEST_F(IdentityTest, breathingTest)
     i3b = i3a;
 
     Identity<std::string> s1 = std::string{"test"};
-    ASSERT_EQ(std::string{"test"}, s1.value());
+    ASSERT_EQ(Identity<std::string>{std::string{"test"}}, s1);
 
     Identity<std::string> s2;
     s2 = s1;
@@ -67,9 +67,9 @@ TEST_F(IdentityTest, fmapTest)
     auto l2 = fmap(l, twice);
     auto c2 = fmap(c, twice);
 
-    ASSERT_EQ(0, i2.value());
-    ASSERT_EQ(0, l2.value());
-    ASSERT_EQ(0, c2.value());
+    ASSERT_EQ(Identity{0}, i2);
+    ASSERT_EQ(Identity{0L}, l2);
+    ASSERT_EQ(Identity{'\0'}, c2);
 
     Identity<int> i3(3);
     Identity<long> l3(3);
@@ -79,9 +79,9 @@ TEST_F(IdentityTest, fmapTest)
     auto l6 = fmap(l3, twice);
     auto c6 = fmap(c3, twice);
 
-    ASSERT_EQ(6, i6.value());
-    ASSERT_EQ(6, l6.value());
-    ASSERT_EQ(6, c6.value());
+    ASSERT_EQ(Identity{6}, i6);
+    ASSERT_EQ(Identity{6L}, l6);
+    ASSERT_EQ(Identity{'\6'}, c6);
 
     ASSERT_EQ(Identity<int>{6}, i6);
     ASSERT_EQ(Identity<int>{6}, l6);
@@ -99,9 +99,9 @@ TEST_F(IdentityTest, bindTest)
     auto l2 = bind(l, twice);
     auto c2 = bind(c, twice);
 
-    ASSERT_EQ(0, i2.value());
-    ASSERT_EQ(0, l2.value());
-    ASSERT_EQ(0, c2.value());
+    ASSERT_EQ(Identity{0}, i2);
+    ASSERT_EQ(Identity{0L}, l2);
+    ASSERT_EQ(Identity{'\0'}, c2);
 
     Identity<int> i3(3);
     Identity<long> l3(3);
@@ -111,9 +111,9 @@ TEST_F(IdentityTest, bindTest)
     auto l6 = bind(l3, twice);
     auto c6 = bind(c3, twice);
 
-    ASSERT_EQ(6, i6.value());
-    ASSERT_EQ(6, l6.value());
-    ASSERT_EQ(6, c6.value());
+    ASSERT_EQ(Identity{6}, i6);
+    ASSERT_EQ(Identity{6L}, l6);
+    ASSERT_EQ(Identity{'\6'}, c6);
 
     ASSERT_EQ(Identity<int>{6}, i6);
     ASSERT_EQ(Identity<int>{6}, l6);
@@ -126,7 +126,7 @@ TEST_F(IdentityTest, joinTest)
     Identity<Identity<int>> ii = make(i);
     Identity<int> j = join(ii);
 
-    ASSERT_EQ(1, i.value());
-    ASSERT_EQ(1, j.value());
+    ASSERT_EQ(Identity{1}, i);
+    ASSERT_EQ(Identity{1}, j);
 }
 }
