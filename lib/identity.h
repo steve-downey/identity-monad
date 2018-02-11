@@ -13,42 +13,33 @@
 //
 //@DESCRIPTION: Identity Monad
 
-
 namespace identity {
 
-template<typename T>
-class Identity
-{
+template <typename T>
+class Identity {
     T t;
 
-    T const& value() const {return t;}
+    T const& value() const { return t; }
 
   public:
-    Identity() : t() {};
-    Identity(T const& t) : t(t) {};
+    Identity() : t(){};
+    Identity(T const& t) : t(t){};
 
     template <typename U, typename Func>
-    friend
-    auto fmap(Identity<U> const& i, Func const& f);
+    friend auto fmap(Identity<U> const& i, Func const& f);
 
     template <typename U, typename Func>
-    friend
-    auto bind(Identity<U> const& i, Func const& f);
+    friend auto bind(Identity<U> const& i, Func const& f);
 
     template <typename U>
-    friend
-    auto join(Identity<Identity<U>> i);
+    friend auto join(Identity<Identity<U>> i);
 
-    template<typename U, typename V>
-    friend
-    bool operator==(Identity<U> t, Identity<V> u);
+    template <typename U, typename V>
+    friend bool operator==(Identity<U> t, Identity<V> u);
 
-    template<typename U, typename V>
-    friend
-    bool operator!=(Identity<U> t, Identity<V> u);
-
+    template <typename U, typename V>
+    friend bool operator!=(Identity<U> t, Identity<V> u);
 };
-
 
 // ============================================================================
 //              INLINE FUNCTION AND FUNCTION TEMPLATE DEFINITIONS
@@ -56,27 +47,24 @@ class Identity
 
 template <typename T, typename Func>
 auto fmap(Identity<T> const& i, Func const& f)
-    //    -> Identity<decltype(f(i.value()))>
+//    -> Identity<decltype(f(i.value()))>
 {
     using U = std::invoke_result_t<Func, T>;
     // f is of type T -> U
     return Identity<U>{std::invoke(f, i.value())};
 }
 
-template<typename T>
-struct template_parameter
-{
-};
+template <typename T>
+struct template_parameter {};
 
-template<typename T>
-struct template_parameter<Identity<T>>
-{
+template <typename T>
+struct template_parameter<Identity<T>> {
     typedef T type;
 };
 
 template <typename T, typename Func>
 auto bind(Identity<T> const& i, Func const& f)
-    //    -> std::invoke_result_t<Func, T>
+//    -> std::invoke_result_t<Func, T>
 {
     using M = std::invoke_result_t<Func, T>;
     using U = typename template_parameter<M>::type;
@@ -96,18 +84,16 @@ auto join(Identity<Identity<T>> i) {
     return Identity<T>{i.value()};
 }
 
-template<typename T, typename U>
+template <typename T, typename U>
 bool operator==(Identity<T> t, Identity<U> u) {
     return t.value() == u.value();
 }
 
-template<typename T, typename U>
+template <typename T, typename U>
 bool operator!=(Identity<T> t, Identity<U> u) {
     return t.value() != u.value();
 }
 
-
-
-}  // close package namespace
+} // namespace identity
 
 #endif

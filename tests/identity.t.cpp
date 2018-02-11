@@ -8,22 +8,18 @@ using ::testing::Test;
 
 namespace testing {
 
-namespace {
-}
+namespace {}
 
 class IdentityTest : public Test {
   protected:
-    virtual void SetUp() {
-    }
+    virtual void SetUp() {}
 
-    virtual void TearDown() {
-    }
+    virtual void TearDown() {}
 };
 
-TEST_F(IdentityTest, breathingTest)
-{
+TEST_F(IdentityTest, breathingTest) {
     using namespace identity;
-    Identity<int> i;
+    Identity<int>  i;
     Identity<long> l;
     Identity<char> c;
 
@@ -32,9 +28,9 @@ TEST_F(IdentityTest, breathingTest)
     Identity<int> i2 = i;
     ASSERT_EQ(i2, i);
 
-    const Identity<int> i3 = 3;
-    Identity<int> i3a = i3;
-    Identity<int> i3b;
+    const Identity<int> i3  = 3;
+    Identity<int>       i3a = i3;
+    Identity<int>       i3b;
     i3b = i3a;
 
     Identity<std::string> s1 = std::string{"test"};
@@ -54,24 +50,22 @@ TEST_F(IdentityTest, breathingTest)
     ASSERT_NE(s2, s3);
 }
 
-
-TEST_F(IdentityTest, fmapTest)
-{
+TEST_F(IdentityTest, fmapTest) {
     using namespace identity;
-    Identity<int> i;
+    Identity<int>  i;
     Identity<long> l;
     Identity<char> c;
 
-    auto twice = [](auto i) {return 2*i;};
-    auto i2 = fmap(i, twice);
-    auto l2 = fmap(l, twice);
-    auto c2 = fmap(c, twice);
+    auto twice = [](auto i) { return 2 * i; };
+    auto i2    = fmap(i, twice);
+    auto l2    = fmap(l, twice);
+    auto c2    = fmap(c, twice);
 
     ASSERT_EQ(Identity{0}, i2);
     ASSERT_EQ(Identity{0L}, l2);
     ASSERT_EQ(Identity{'\0'}, c2);
 
-    Identity<int> i3(3);
+    Identity<int>  i3(3);
     Identity<long> l3(3);
     Identity<char> c3(3);
 
@@ -87,23 +81,22 @@ TEST_F(IdentityTest, fmapTest)
     ASSERT_EQ(Identity<int>{6}, l6);
 }
 
-TEST_F(IdentityTest, bindTest)
-{
+TEST_F(IdentityTest, bindTest) {
     using namespace identity;
-    Identity<int> i;
+    Identity<int>  i;
     Identity<long> l;
     Identity<char> c;
 
-    auto twice = [](auto i) -> Identity<decltype(2*i)> {return 2*i;};
-    auto i2 = bind(i, twice);
-    auto l2 = bind(l, twice);
-    auto c2 = bind(c, twice);
+    auto twice = [](auto i) -> Identity<decltype(2 * i)> { return 2 * i; };
+    auto i2    = bind(i, twice);
+    auto l2    = bind(l, twice);
+    auto c2    = bind(c, twice);
 
     ASSERT_EQ(Identity{0}, i2);
     ASSERT_EQ(Identity{0L}, l2);
     ASSERT_EQ(Identity{'\0'}, c2);
 
-    Identity<int> i3(3);
+    Identity<int>  i3(3);
     Identity<long> l3(3);
     Identity<char> c3(3);
 
@@ -119,14 +112,13 @@ TEST_F(IdentityTest, bindTest)
     ASSERT_EQ(Identity<int>{6}, l6);
 }
 
-TEST_F(IdentityTest, joinTest)
-{
+TEST_F(IdentityTest, joinTest) {
     using namespace identity;
-    Identity<int> i = make(1);
+    Identity<int>           i  = make(1);
     Identity<Identity<int>> ii = make(i);
-    Identity<int> j = join(ii);
+    Identity<int>           j  = join(ii);
 
     ASSERT_EQ(Identity{1}, i);
     ASSERT_EQ(Identity{1}, j);
 }
-}
+} // namespace testing
