@@ -81,6 +81,15 @@ auto bind(Identity<T> const& i, Func const& f)
     return std::invoke(f, i.value());
 }
 
+template <typename Func>
+auto bind(Func const& f)
+{
+    // lifts the argument into the monad and joins the result:
+    // (T -> Identity<U>) -> (Identity<T> -> Identity<U>)
+    return [=](auto t){return bind(t, f);};
+}
+
+
 template <typename T>
 Identity<T> make(T t) {
     return Identity<T>{t};

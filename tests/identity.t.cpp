@@ -155,4 +155,37 @@ TEST_F(IdentityTest, fmapHigherOrderTest) {
     ASSERT_EQ(Identity<int>{6}, l6);
 }
 
+TEST_F(IdentityTest, bindHigherOrderTest) {
+    using namespace identity;
+    Identity<int>  i;
+    Identity<long> l;
+    Identity<char> c;
+
+    auto twice = [](auto i) -> Identity<decltype(2 * i)> { return 2 * i; };
+    auto bindTwice = bind(twice);
+
+    auto i2    = bindTwice(i);
+    auto l2    = bindTwice(l);
+    auto c2    = bindTwice(c);
+
+    ASSERT_EQ(Identity{0}, i2);
+    ASSERT_EQ(Identity{0L}, l2);
+    ASSERT_EQ(Identity{'\0'}, c2);
+
+    Identity<int>  i3(3);
+    Identity<long> l3(3);
+    Identity<char> c3(3);
+
+    auto i6 = bindTwice(i3);
+    auto l6 = bindTwice(l3);
+    auto c6 = bindTwice(c3);
+
+    ASSERT_EQ(Identity{6}, i6);
+    ASSERT_EQ(Identity{6L}, l6);
+    ASSERT_EQ(Identity{'\6'}, c6);
+
+    ASSERT_EQ(Identity<int>{6}, i6);
+    ASSERT_EQ(Identity<int>{6}, l6);
+}
+
 } // namespace testing
