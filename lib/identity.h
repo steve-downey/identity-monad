@@ -54,6 +54,13 @@ auto fmap(Identity<T> const& i, Func const& f)
     return Identity<U>{std::invoke(f, i.value())};
 }
 
+template <typename Func>
+auto fmap(Func const& f)
+{
+    // maps (T -> U) -> (Identity<T> -> Identity<U>)
+    return [=](auto t){return fmap(t, f);};
+}
+
 template <typename T>
 struct template_parameter {};
 

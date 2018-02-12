@@ -121,4 +121,38 @@ TEST_F(IdentityTest, joinTest) {
     ASSERT_EQ(Identity{1}, i);
     ASSERT_EQ(Identity{1}, j);
 }
+
+TEST_F(IdentityTest, fmapHigherOrderTest) {
+    using namespace identity;
+    Identity<int>  i;
+    Identity<long> l;
+    Identity<char> c;
+
+    auto twice = [](auto i) { return 2 * i; };
+    auto fmapTwice = fmap(twice);
+
+    auto i2    = fmapTwice(i);
+    auto l2    = fmapTwice(l);
+    auto c2    = fmapTwice(c);
+
+    ASSERT_EQ(Identity{0}, i2);
+    ASSERT_EQ(Identity{0L}, l2);
+    ASSERT_EQ(Identity{'\0'}, c2);
+
+    Identity<int>  i3(3);
+    Identity<long> l3(3);
+    Identity<char> c3(3);
+
+    auto i6 = fmapTwice(i3);
+    auto l6 = fmapTwice(l3);
+    auto c6 = fmapTwice(c3);
+
+    ASSERT_EQ(Identity{6}, i6);
+    ASSERT_EQ(Identity{6L}, l6);
+    ASSERT_EQ(Identity{'\6'}, c6);
+
+    ASSERT_EQ(Identity<int>{6}, i6);
+    ASSERT_EQ(Identity<int>{6}, l6);
+}
+
 } // namespace testing
