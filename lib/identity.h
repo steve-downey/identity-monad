@@ -37,9 +37,6 @@ class Identity {
 
     template <typename U, typename V>
     friend bool operator==(Identity<U> u, Identity<V> v);
-
-    template <typename U, typename V>
-    friend bool operator!=(Identity<U> t, Identity<V> u);
 };
 
 // ============================================================================
@@ -102,7 +99,7 @@ bool operator==(Identity<T> t, Identity<U> u) {
 
 template <typename T, typename U>
 bool operator!=(Identity<T> t, Identity<U> u) {
-    return t.t_ != u.t_;
+    return !(t == u);
 }
 
 template <typename Func>
