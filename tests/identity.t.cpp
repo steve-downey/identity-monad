@@ -188,4 +188,16 @@ TEST_F(IdentityTest, bindHigherOrderTest) {
     ASSERT_EQ(Identity<int>{6}, l6);
 }
 
+int six(int a, int b, int c, int d, int e, int f) {
+    return a + b + c + d + e + f;
+}
+
+TEST_F(IdentityTest, curryTest) {
+    using namespace identity;
+    auto c = curry(six);
+    int i1 = c(1)(2)(3)(4)(5)(6);
+
+    ASSERT_EQ(21, i1);
+}
+
 } // namespace testing
