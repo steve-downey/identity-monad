@@ -200,4 +200,21 @@ TEST_F(IdentityTest, curryTest) {
     ASSERT_EQ(21, i1);
 }
 
+int two(int a) { return a; }
+
+int three(int a, int b) { return a + b; }
+
+TEST_F(IdentityTest, apTest) {
+    using namespace identity;
+
+    auto c      = curry(three);
+    auto mapped = fmap(c);
+
+    Identity<int> i3(3);
+    auto          partial = mapped(i3);
+
+    Identity<int> i4(4);
+    Identity<int> k = ap(partial, i4);
+    ASSERT_EQ(Identity<int>(7), k);
+}
 } // namespace testing

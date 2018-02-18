@@ -37,6 +37,10 @@ class Identity {
 
     template <typename U, typename V>
     friend bool operator==(Identity<U> u, Identity<V> v);
+
+    template <typename Func, typename U>
+    friend auto ap(Identity<Func> const& f, Identity<U> t)
+        -> Identity<decltype(f.t_(t.t_))>;
 };
 
 // ============================================================================
@@ -45,9 +49,9 @@ class Identity {
 
 template <typename T, typename Func>
 auto fmap(Identity<T> const& i, Func const& f) -> Identity<decltype(f(i.t_))> {
-    using U = std::invoke_result_t<Func, T>;
+    //    using U = std::invoke_result_t<Func, T>;
     // f is of type T -> U
-    return Identity<U>{std::invoke(f, i.t_)};
+    return Identity<decltype(f(i.t_))>{std::invoke(f, i.t_)};
 }
 
 template <typename Func>
@@ -115,6 +119,13 @@ auto curry(Func f) {
     }
 }
 
+template <typename Func, typename U>
+auto ap(Identity<Func> const& f, Identity<U> t)
+    -> Identity<decltype(f.t_(t.t_))>
+
+{
+    return f.t_(t.t_);
+}
 } // namespace identity
 
 #endif
