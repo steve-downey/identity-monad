@@ -128,12 +128,12 @@ TEST_F(IdentityTest, fmapHigherOrderTest) {
     Identity<long> l;
     Identity<char> c;
 
-    auto twice = [](auto i) { return 2 * i; };
+    auto twice     = [](auto i) { return 2 * i; };
     auto fmapTwice = fmap(twice);
 
-    auto i2    = fmapTwice(i);
-    auto l2    = fmapTwice(l);
-    auto c2    = fmapTwice(c);
+    auto i2 = fmapTwice(i);
+    auto l2 = fmapTwice(l);
+    auto c2 = fmapTwice(c);
 
     ASSERT_EQ(Identity{0}, i2);
     ASSERT_EQ(Identity{0L}, l2);
@@ -161,12 +161,12 @@ TEST_F(IdentityTest, bindHigherOrderTest) {
     Identity<long> l;
     Identity<char> c;
 
-    auto twice = [](auto i) -> Identity<decltype(2 * i)> { return 2 * i; };
+    auto twice     = [](auto i) -> Identity<decltype(2 * i)> { return 2 * i; };
     auto bindTwice = bind(twice);
 
-    auto i2    = bindTwice(i);
-    auto l2    = bindTwice(l);
-    auto c2    = bindTwice(c);
+    auto i2 = bindTwice(i);
+    auto l2 = bindTwice(l);
+    auto c2 = bindTwice(c);
 
     ASSERT_EQ(Identity{0}, i2);
     ASSERT_EQ(Identity{0L}, l2);
@@ -194,8 +194,8 @@ int six(int a, int b, int c, int d, int e, int f) {
 
 TEST_F(IdentityTest, curryTest) {
     using namespace identity;
-    auto c = curry(six);
-    int i1 = c(1)(2)(3)(4)(5)(6);
+    auto c  = curry(six);
+    int  i1 = c(1)(2)(3)(4)(5)(6);
 
     ASSERT_EQ(21, i1);
 }
