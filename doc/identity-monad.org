@@ -1,0 +1,74 @@
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:{} arch:headline author:t c:nil
+#+OPTIONS: creator:comment d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t
+#+OPTIONS: num:t p:nil pri:nil stat:t tags:t tasks:t tex:t timestamp:t toc:nil
+#+OPTIONS: todo:t |:t
+#+TITLE: The Identity Monad
+#+DATE: <2018-03-01 Thu>
+#+AUTHOR: Steve Downey
+#+EMAIL: sdowney@sdowney.org
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport
+#+CREATOR: <a href="http://www.gnu.org/software/emacs/">Emacs</a> 25.1.3 (<a href="http://orgmode.org">Org</a> mode 9.0)
+#+OPTIONS: html-link-use-abs-url:nil html-postamble:auto html-preamble:t
+#+OPTIONS: html-scripts:t html-style:t html5-fancy:nil tex:t
+#+HTML_DOCTYPE: xhtml-strict
+#+HTML_CONTAINER: div
+#+DESCRIPTION:
+#+KEYWORDS:
+#+HTML_LINK_HOME:
+#+HTML_LINK_UP:
+#+HTML_MATHJAX:
+#+HTML_HEAD: <link href="http://sdowney.org/css/smd-zenburn.css" rel="stylesheet"></link>
+#+HTML_HEAD_EXTRA:
+#+SUBTITLE:
+#+INFOJS_OPT:
+#+LATEX_HEADER:
+#+BABEL: :results output graphics :tangle yes
+#+STARTUP: showeverything
+
+
+A short exposition on the simplest monad possible, the Identity monad, which does nothing. It is a pure context, that provides no extra capabilites. The only reason to consider it is that it provides a fairly pure implementation of the monad interface, with no other distractions. The only known use for the Identity monad, other than exposition, is to model Taint, where the context, such as user input, can't be removed.
+
+* Identity Monad in Haskell
+
+This is a definition of the Identity monad in haskell, for reference. This is using the relatively new Applicative typeclass between Functor and Monad.
+#+INCLUDE: "../haskell/Id.hs" src haskell
+
+Id wraps a single value. There is no empty state. The mapping function, fmap, simply applies the a funtion to the value being wrapped. The function (<*>), also known as ap, takes a wrapped function, applies it to a wrapped value, and returns it wrapped up. The function pure, which is the same as return, just constructs an Id with the value in it. The bind function (>>=) does the same thing, only with a function that returns a wrapped value.
+
+
+
+* Identity Monad in C++
+
+The basic data structure for the Identity monad is fairly trivial. It's a generic type, and holds a single element, privately, of that type. I am ignoring any issues about reference types, non-copyable types, non-moveable types, etc. as distractions. I'm also assuming it's default constructable, for simplicity.
+
+#+BEGIN_SRC C++
+template <typename T>
+class Identity {
+    T t_;
+
+  public:
+    Identity() : t_(){};
+    Identity(T const& t) : t_(t){};
+
+    // ...
+};
+
+#+END_SRC
+
+In particular, there are no accesors for the t being held. Values go in but they can't get out. At least not yet, and not without side-effect using functions. This is why it's sometimes used as Taint, where you can not lose track of the data coming from outside and being untrusted.
+
+
+
+
+* Identity function digression
+
+In working with theory, it can also provide a base case, where if you can show something true, it is true for all monads, and the proof for the identity monad is trivial. This is a similar role as the identity function, which simply returns its argument. For example, in c++
+
+#+BEGIN_SRC C++
+constexpr auto identity = [](auto &&v) -> decltype(auto)
+{
+    return std::forward<decltype(v)>(v);
+};
+#+END_SRC
