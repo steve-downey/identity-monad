@@ -1,6 +1,6 @@
 #+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:{} arch:headline author:t c:nil
 #+OPTIONS: creator:comment d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t
-#+OPTIONS: num:t p:nil pri:nil stat:t tags:t tasks:t tex:t timestamp:t toc:nil
+#+OPTIONS: num:nil p:nil pri:nil stat:t tags:t tasks:t tex:t timestamp:t toc:nil
 #+OPTIONS: todo:t |:t
 #+TITLE: The Identity Monad
 #+DATE: <2018-03-01 Thu>
@@ -57,18 +57,168 @@ class Identity {
 
 #+END_SRC
 
-In particular, there are no accesors for the t being held. Values go in but they can't get out. At least not yet, and not without side-effect using functions. This is why it's sometimes used as Taint, where you can not lose track of the data coming from outside and being untrusted.
+In particular, there are no accesors for the src_C++[:exports code]{T t_} being held. Values go in but they can't get out. At least not yet, and not without side-effect using functions. This is why it's sometimes used as Taint, where you can not lose track of the data coming from outside and being untrusted.
 
 
+* Identity Functor
 
+To make a data structure a Functor a src_C++[:exports code]{fmap} function needs to be provided that satisfies certain requirements. It also turns out that if there is such a function, for a particular data struture, all of the implmentations are isomorphic. So there's basically only one for a particular data structure. Fmap for a functor F takes two arguments, a function from T->U, an F<T>, and it will return an F<U>. Although, for C++ this is a bit over-restrictive, and we probably want to be able to apply any function where the template type of the Identity can be used to call the function being mapped. Fortunately C++17 added some traits to work with invocables, and we can use src_C++[:exports code]{std::invoke_result_t} to both detect if a call can be made, and determine the type of the result.
+#+BEGIN_SRC C++
+template <typename U, typename Func>
+auto fmap(Identity<U> const& i, Func const& f)
+    -> Identity<std::invoke_result_t<Func, U>> {
+    using V = std::invoke_result_t<Func, U>;
+    return Identity<V>{std::invoke(f, i.t_)};
+}
+
+#+END_SRC
+It's also declared as a friend, so that it can have access to the internally held t_.
+
+There are two "laws" for how fmap must behave
+#+BEGIN_SRC haskell
+-- identity preserving
+fmap id = id
+
+-- Composition
+fmap (f . g) = (fmap f) . (fmap g)
+#+END_SRC
+
+The first one says that fmaping the identity function won't change the object, so it's equivalent to just the identity function. For Identity, this is straightforward to show, since the held value isn't going to be changed, the result won't change the value of the Identity. We can write an equality test for Identity:
+#+BEGIN_SRC C++
+template <typename T, typename U>
+bool operator==(Identity<T> t, Identity<U> u) {
+    return t.t_ == u.t_;
+}
+
+template <typename T, typename U>
+bool operator!=(Identity<T> t, Identity<U> u) {
+    return !(t == u);
+}
+#+END_SRC
+
+It's expressed as a non-member, in order to support allowed conversions between T and U. So we can compare Identity<int> and Identity<long> the same way we can compare int and long.
+
+The second law is more interesting. It's expressing that you can distribute fmap over function composition. Chaining functions works transparently. with appropriate adjustment of the types of the functions. So what does applying fmap to a function, without a Functor object like Identity do? It's a higher order function, one that takes _and returns_ a function.
+#+BEGIN_SRC C++
+template <typename Func>
+auto fmap(Func const& f) {
+    // maps (T -> U) -> (Identity<T> -> Identity<U>)
+    return [f](auto t) { return fmap(t, f); };
+}
+
+#+END_SRC
+
+In haskell this is natuaral, and does not need a separate defintion because of currying. In haskell if you have a function of type (T -> U) -> F<T> -> F<U>, it is both a function taking one argument, and returning a function, and a function taking two argument and returning a value. Both (T->U) -> (F<T> -> F<U>) and (T -> U), F<T> -> F<U> are true, depending on how many arguments you supply.
+
+The operator (.) in haskell has type src_haskell[:exports code]{(.) :: (b -> c) -> (a -> b) -> (a -> c)}, so f . g is g(f()), more function chaining. We can either lift the the function (a -> c) into F<a> -> F<c>, or we can chain together F<a> -> F<b> into F<b> -> F<c> and get the same result. This is a natural property of container-like Functors, like Identity, or an optional, or std::vector.
 
 * Identity function digression
 
-In working with theory, it can also provide a base case, where if you can show something true, it is true for all monads, and the proof for the identity monad is trivial. This is a similar role as the identity function, which simply returns its argument. For example, in c++
-
+It's surprisingly tricky to get a good identity function, one that really returns the same object in the C++ sense.  This is the one I use:
 #+BEGIN_SRC C++
 constexpr auto identity = [](auto &&v) -> decltype(auto)
 {
     return std::forward<decltype(v)>(v);
 };
 #+END_SRC
+
+* Using fmap on Identity
+
+A short example, from a test case of using the two argument fmap:
+#+BEGIN_SRC C++
+Identity<int>  i;
+Identity<long> l;
+Identity<char> c;
+
+auto twice = [](auto z) { return 2 * z; };
+auto i2    = fmap(i, twice);
+auto l2    = fmap(l, twice);
+auto c2    = fmap(c, twice);
+
+ASSERT_EQ(Identity{0}, i2);
+ASSERT_EQ(Identity{0L}, l2);
+ASSERT_EQ(Identity{'\0'}, c2);
+
+Identity<int>  i3(3);
+Identity<long> l3(3);
+Identity<char> c3(3);
+
+auto i6 = fmap(i3, twice);
+auto l6 = fmap(l3, twice);
+auto c6 = fmap(c3, twice);
+
+ASSERT_EQ(Identity{6}, i6);
+ASSERT_EQ(Identity{6L}, l6);
+ASSERT_EQ(Identity{'\6'}, c6);
+
+#+END_SRC
+
+And the one argument form, where the only difference is we can use the fmapped lambda on all of the Identity instances:
+
+#+BEGIN_SRC C++
+Identity<int>  i;
+Identity<long> l;
+Identity<char> c;
+
+auto twice     = [](auto i) { return 2 * i; };
+auto fmapTwice = fmap(twice);
+
+auto i2 = fmapTwice(i);
+auto l2 = fmapTwice(l);
+auto c2 = fmapTwice(c);
+
+ASSERT_EQ(Identity{0}, i2);
+ASSERT_EQ(Identity{0L}, l2);
+ASSERT_EQ(Identity{'\0'}, c2);
+
+Identity<int>  i3(3);
+Identity<long> l3(3);
+Identity<char> c3(3);
+
+auto i6 = fmapTwice(i3);
+auto l6 = fmapTwice(l3);
+auto c6 = fmapTwice(c3);
+
+ASSERT_EQ(Identity{6}, i6);
+ASSERT_EQ(Identity{6L}, l6);
+ASSERT_EQ(Identity{'\6'}, c6);
+
+
+#+END_SRC
+
+Fmap, and the Functor laws, gives a way of applying chains of functions to a Functor object and know that the application will behave sensibly. The equivalent STL algorithm is src_C++[:exports code]{std::transform}, however that requires that there be iterators for the Functor, which means it can not be used for Functors like std::optional. If it were, then we could write code like
+#+BEGIN_SRC C++
+std::optional<int> mult(std::optional<int> o1, std::optional<int> o2)
+{
+    for (auto const& a : o1)
+    {
+        for (auto const& b : o2)
+        {
+            return a*b;
+        }
+    }
+    return {};
+}
+#+END_SRC
+
+The core function (a * b) is also something that fmap can't deal with directly. Fmap deals with functions of one argument, and this has two. It's src_Haskell[:exports code]{int -> int -> int}, not src_Haskell[:exports code]{int -> int}. That's what Applicative is about.
+
+* Applicative and ~ap~
+
+Applicative is a little unnatural in C++. It works via partial application, which functional languages usually have a direct syntax for, while in C++ we have at best lambda capture, and at worst ~std::bind~, or the late, and unlamented, ~std::bind1st~. The idea, though, is that you can treat a function like (*), multiply, with the type src_Haskell[:exports code]{int -> int -> int} as a function that takes an int and returns a function with type src_Haskell[:exports code]{int -> int}. And it is useful to be able to do this with Functors.
+
+Applicative introduces two operators in Haskell, one is an infix version of fmap, and the other is new, and exists to deal with chaining multi-argument functions.
+
+#+BEGIN_SRC Haskell
+(<$>) :: Functor f => (a -> b) -> f a -> f b
+(<*>) :: Applicative f => f (a -> b) -> f a -> f b
+#+END_SRC
+
+Infix notation, putting the operation in the middle of the arguments, can improve readability and ergonomics. It's one of the reasons the Uniform Function Call Syntax proposal gets traction. It's useful and natural to be able to say things in noun verb order, and is one of the attactions of member functions in the first place. There are libraries, such as Hana, that provide mechanisms to be able to infix funtions with syntax like src_C++[:exports code]{ f <fmap> x}, which would translate to src_C++[:exports code]{fmap(f, x)}. Note this doesn't match the argument order of the fmap I've used so far. The ergonomics of C++ dictate that functions that might take lambdas put that argument last, unless there is a compelling reason otherwise. API design work is hard.
+
+The new function (<*>), also known as ~ap~, takes a function wrapped in a Functor and applies it to an object wrapped in the Functor, and returns the result wrapped in the Functor. That function usually comes from fmaping, so you will see a chain of <$><*><*>... providing arguments to the function. For Identity this will just be calling the function with the contents. Often with the ~pure~ function as part of it, which is the other piece that Applicative introduces, with a terribly misleading name. The ~pure~ function takes a value and lifts it into the Functor in the most natural way possible.
+#+BEGIN_SRC Haskell
+pure :: Applicative f => a -> f a
+#+END_SRC
+
+Pure is also known as ~return~ for Monad, and also known as ~unit~. All of these are somewhat misleading names. For C++ I tend to prefer ~make~. This is generally a constructor, but we want to disambiguate constructor calls with control parameters. That is, we want to be sure we're calling the constructor of std::vector that makes a std::vector<size_t> that has one element, not a std::vector<unsigned long> that has size_t elements, all zero.

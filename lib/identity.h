@@ -26,7 +26,7 @@ class Identity {
 
     template <typename U, typename Func>
     friend auto fmap(Identity<U> const& i, Func const& f)
-        -> Identity<decltype(f(i.t_))>;
+        -> Identity<std::invoke_result_t<Func, U>>;
 
     template <typename U, typename Func>
     friend auto bind(Identity<U> const& i, Func const& f)
@@ -40,19 +40,27 @@ class Identity {
 
     template <typename Func, typename U>
     friend auto ap(Identity<Func> const& f, Identity<U> t)
-        -> Identity<decltype(f.t_(t.t_))>;
+        -> Identity<std::invoke_result_t<Func, U>>;
+
+    // template <typename Func, typename U>
+    // friend auto ap(Identity<Func> const& f, Identity<U> t)
+    //     -> Identity<decltype(f.t_(t.t_))>
+    // {
+    //          return f.t_(t.t_);
+    // }
+
 };
 
 // ============================================================================
 //              INLINE FUNCTION AND FUNCTION TEMPLATE DEFINITIONS
 // ============================================================================
 
-template <typename T, typename Func>
-auto fmap(Identity<T> const& i, Func const& f) -> Identity<decltype(f(i.t_))> {
-    //    using U = std::invoke_result_t<Func, T>;
-    // f is of type T -> U
-    return Identity<decltype(f(i.t_))>{std::invoke(f, i.t_)};
-}
+ template <typename U, typename Func>
+ auto fmap(Identity<U> const& i, Func const& f)
+     -> Identity<std::invoke_result_t<Func, U>> {
+     using V = std::invoke_result_t<Func, U>;
+     return Identity<V>{std::invoke(f, i.t_)};
+ }
 
 template <typename Func>
 auto fmap(Func const& f) {
@@ -107,24 +115,27 @@ bool operator!=(Identity<T> t, Identity<U> u) {
 }
 
 template <typename Func>
-auto curry(Func f) {
+decltype(auto) curry(Func&& f) {
     if constexpr (std::is_invocable<Func>::value) {
         return f();
     } else {
-        return [f](auto&& x) {
-            return curry([f, x](auto&&... xs) -> decltype(f(x, xs...)) {
-                return f(x, xs...);
-            });
+        return [f_ = std::forward<decltype(f)>(f)](auto&& x) {
+            return curry(
+                [ f_,
+                  x ](auto&&... xs) -> std::invoke_result_t<decltype(f_),
+                                                            decltype(x),
+                                                            decltype(xs)...> {
+                    return std::invoke(f_, x, xs...);
+                });
         };
     }
 }
 
 template <typename Func, typename U>
 auto ap(Identity<Func> const& f, Identity<U> t)
-    -> Identity<decltype(f.t_(t.t_))>
-
+    -> Identity<std::invoke_result_t<Func, U>>
 {
-    return f.t_(t.t_);
+    return std::invoke(f.t_, t.t_);
 }
 } // namespace identity
 

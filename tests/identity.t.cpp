@@ -56,7 +56,7 @@ TEST_F(IdentityTest, fmapTest) {
     Identity<long> l;
     Identity<char> c;
 
-    auto twice = [](auto i) { return 2 * i; };
+    auto twice = [](auto z) { return 2 * z; };
     auto i2    = fmap(i, twice);
     auto l2    = fmap(l, twice);
     auto c2    = fmap(c, twice);
@@ -206,15 +206,23 @@ int three(int a, int b) { return a + b; }
 
 TEST_F(IdentityTest, apTest) {
     using namespace identity;
-
-    auto c      = curry(three);
-    auto mapped = fmap(c);
-
+    auto f = [](int a) {return [a](int b){return a + b;};};
+    // f is of type int -> (int -> int)
     Identity<int> i3(3);
-    auto          partial = mapped(i3);
-
+    auto partial = fmap(i3, f);
+    // partial is Identity<int -> int> (roughly)
     Identity<int> i4(4);
     Identity<int> k = ap(partial, i4);
     ASSERT_EQ(Identity<int>(7), k);
+
+    auto curry1 = [](auto func){return [func](int a){return [func, a](int b){return func(a, b);};};};
+    auto g = curry1(three);
+    auto h = g(3);
+    ASSERT_EQ(7, h(4));
+
+    auto partial2 = fmap(i3, g);
+    Identity<int> k2 = ap(partial2, i4);
+    ASSERT_EQ(Identity<int>(7), k2);
+
 }
 } // namespace testing
