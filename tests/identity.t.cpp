@@ -215,7 +215,13 @@ TEST_F(IdentityTest, apTest) {
     Identity<int> k = ap(partial, i4);
     ASSERT_EQ(Identity<int>(7), k);
 
-    auto curry1 = [](auto func){return [func](int a){return [func, a](int b){return func(a, b);};};};
+    auto curry1 = [](auto func) {
+        return [func](int a) {
+            return [func, a](int b) {
+                return func(a, b);
+            };
+        };
+    };
     auto g = curry1(three);
     auto h = g(3);
     ASSERT_EQ(7, h(4));
