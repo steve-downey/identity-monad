@@ -112,6 +112,26 @@ TEST_F(IdentityTest, bindTest) {
     ASSERT_EQ(Identity<int>{6}, l6);
 }
 
+identity::Identity<int> identCopy(identity::Identity<int> a) {return a;}
+
+TEST_F(IdentityTest, makeTest) {
+    using namespace identity;
+    Identity<int> r = identCopy(Identity<int>{3});
+    Identity<int> r2 = identCopy(make(3));
+    ASSERT_EQ(r, r2);
+}
+
+TEST_F(IdentityTest, make2Test) {
+    using namespace identity;
+    Identity<int> r = identCopy(Identity<int>{3});
+    Identity<int> r2 = identCopy(make<Identity>(3));
+    ASSERT_EQ(r, r2);
+    Identity<int>           i  = make<Identity>(1);
+    Identity<Identity<int>> ii = make<Identity>(i);
+    ASSERT_EQ(Identity<Identity<int>>{Identity{1}}, ii);
+
+}
+
 TEST_F(IdentityTest, joinTest) {
     using namespace identity;
     Identity<int>           i  = make(1);
@@ -121,6 +141,7 @@ TEST_F(IdentityTest, joinTest) {
     ASSERT_EQ(Identity{1}, i);
     ASSERT_EQ(Identity{1}, j);
 }
+
 
 TEST_F(IdentityTest, fmapHigherOrderTest) {
     using namespace identity;
@@ -230,5 +251,58 @@ TEST_F(IdentityTest, apTest) {
     Identity<int> k2 = ap(partial2, i4);
     ASSERT_EQ(Identity<int>(7), k2);
 
+}
+
+TEST_F(IdentityTest, apTest2) {
+    using namespace identity;
+    auto f = [](int a) { return [a](int b) { return a + b; }; };
+    // f is of type int -> (int -> int)
+    Identity<int> i3(3);
+    auto          partial = fmap(i3, f);
+    // partial is Identity<int -> int> (roughly)
+    Identity<int> i4(4);
+    Identity<int> k = ap<Identity>(partial, i4);
+    ASSERT_EQ(Identity<int>(7), k);
+
+    auto curry1 = [](auto func) {
+        return
+            [func](int a) { return [func, a](int b) { return func(a, b); }; };
+    };
+    auto g = curry1(three);
+    auto h = g(3);
+    ASSERT_EQ(7, h(4));
+
+    auto          partial2 = fmap(i3, g);
+    Identity<int> k2       = ap<Identity>(partial2, i4);
+    ASSERT_EQ(Identity<int>(7), k2);
+}
+
+template <template <typename> typename Ap, typename Value>
+void genericTest() {
+    using namespace identity;
+    auto f = [](int a) { return [a](int b) { return a + b; }; };
+    // f is of type int -> (int -> int)
+    auto i3      = make<Ap>(3);
+    auto partial = fmap(i3, f);
+    // partial is Identity<int -> int> (roughly)
+    auto      i4 = make<Ap>(4);
+    Ap<Value> k  = ap<Ap>(partial, i4);
+    ASSERT_EQ(Ap<Value>(7), k);
+
+    auto curry1 = [](auto func) {
+        return
+            [func](int a) { return [func, a](int b) { return func(a, b); }; };
+    };
+    auto g = curry1(three);
+    auto h = g(3);
+    ASSERT_EQ(7, h(4));
+
+    auto      partial2 = fmap(i3, g);
+    Ap<Value> k2       = ap<Ap>(partial2, i4);
+    ASSERT_EQ(Ap<Value>(7), k2);
+}
+
+TEST_F(IdentityTest, apTest3) {
+    genericTest<identity::Identity, int>();
 }
 } // namespace testing

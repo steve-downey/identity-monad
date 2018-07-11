@@ -48,19 +48,18 @@ class Identity {
     // {
     //          return f.t_(t.t_);
     // }
-
 };
 
 // ============================================================================
 //              INLINE FUNCTION AND FUNCTION TEMPLATE DEFINITIONS
 // ============================================================================
 
- template <typename U, typename Func>
- auto fmap(Identity<U> const& i, Func const& f)
-     -> Identity<std::invoke_result_t<Func, U>> {
-     using V = std::invoke_result_t<Func, U>;
-     return Identity<V>{std::invoke(f, i.t_)};
- }
+template <typename U, typename Func>
+auto fmap(Identity<U> const& i, Func const& f)
+    -> Identity<std::invoke_result_t<Func, U>> {
+    using V = std::invoke_result_t<Func, U>;
+    return Identity<V>{std::invoke(f, i.t_)};
+}
 
 template <typename Func>
 auto fmap(Func const& f) {
@@ -133,10 +132,52 @@ decltype(auto) curry(Func&& f) {
 
 template <typename Func, typename U>
 auto ap(Identity<Func> const& f, Identity<U> t)
-    -> Identity<std::invoke_result_t<Func, U>>
-{
+    -> Identity<std::invoke_result_t<Func, U>> {
     return std::invoke(f.t_, t.t_);
 }
+
+template <template <typename> typename Ap, typename Value>
+struct Applicative {
+    Ap<Value> make(Value const& v);
+    Ap<Value> make(Value&& v);
+
+    template <typename Func>
+    auto ap(Identity<Func> const& f, Identity<Value> t)
+        -> Identity<std::invoke_result_t<Func, Value>>;
+};
+
+template <typename Value>
+struct Applicative<Identity, Value> {
+    typedef typename std::decay<Value>::type V;
+    Identity<V> make(V const& v) { return Identity<V>{v}; }
+    Identity<V> make(V&& v) { return Identity<V>{v}; }
+
+    template <typename Func>
+    auto ap(Identity<Func> const& f, Identity<Value> t)
+        -> Identity<std::invoke_result_t<Func, Value>> {
+        return identity::ap(f, t);
+    }
+};
+
+template <template <typename> typename Ap, typename Value>
+Ap<typename std::decay<Value>::type> make(Value const& v) {
+    Applicative<Ap, Value> a;
+    return a.make(v);
+}
+
+template <template <typename> typename Ap, typename Value>
+Ap<typename std::decay<Value>::type> make(Value&& v) {
+    Applicative<Ap, Value> a;
+    return a.make(v);
+}
+
+template <template <typename> typename Ap, typename Func, typename Value>
+auto ap(Identity<Func> const& f, Identity<Value> t)
+    -> Identity<std::invoke_result_t<Func, Value>> {
+    Applicative<Ap, Value> a;
+    return a.ap(f, t);
+}
+
 } // namespace identity
 
 #endif
