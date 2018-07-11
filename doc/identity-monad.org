@@ -216,9 +216,72 @@ Applicative introduces two operators in Haskell, one is an infix version of fmap
 
 Infix notation, putting the operation in the middle of the arguments, can improve readability and ergonomics. It's one of the reasons the Uniform Function Call Syntax proposal gets traction. It's useful and natural to be able to say things in noun verb order, and is one of the attactions of member functions in the first place. There are libraries, such as Hana, that provide mechanisms to be able to infix funtions with syntax like src_C++[:exports code]{ f <fmap> x}, which would translate to src_C++[:exports code]{fmap(f, x)}. Note this doesn't match the argument order of the fmap I've used so far. The ergonomics of C++ dictate that functions that might take lambdas put that argument last, unless there is a compelling reason otherwise. API design work is hard.
 
-The new function (<*>), also known as ~ap~, takes a function wrapped in a Functor and applies it to an object wrapped in the Functor, and returns the result wrapped in the Functor. That function usually comes from fmaping, so you will see a chain of <$><*><*>... providing arguments to the function. For Identity this will just be calling the function with the contents. Often with the ~pure~ function as part of it, which is the other piece that Applicative introduces, with a terribly misleading name. The ~pure~ function takes a value and lifts it into the Functor in the most natural way possible.
+The new function (<*>), also known as ~ap~, takes a function wrapped in a Functor and applies it to an object wrapped in the Functor, and returns the result wrapped in the Functor. That function usually comes from fmaping, so you will see a chain of <$><*><*>... providing arguments to the function. For Identity this will just be calling the function with the contents. Often with the ~pure~ function as part of it, which is the other piece that Applicative introduces, with a terribly misleading name. The ~pure~ function takes a value and lifts it into the Functor in the most natural way possible. For container-like Applicatives, that is putting a single value into the container.
 #+BEGIN_SRC Haskell
 pure :: Applicative f => a -> f a
 #+END_SRC
 
-Pure is also known as ~return~ for Monad, and also known as ~unit~. All of these are somewhat misleading names. For C++ I tend to prefer ~make~. This is generally a constructor, but we want to disambiguate constructor calls with control parameters. That is, we want to be sure we're calling the constructor of std::vector that makes a std::vector<size_t> that has one element, not a std::vector<unsigned long> that has size_t elements, all zero.
+Pure is also known as ~return~ for Monad, and also known as ~unit~. All of these are somewhat misleading names. For C++ I tend to prefer ~make~. This is generally a constructor, but we want to disambiguate constructor calls with control parameters. That is, we want to be sure we're calling the constructor of std::vector that makes a std::vector<size_t> that has one element, not a std::vector<unsigned long> that has size_t elements, all zero. In the case of the identity monad, make is pretty simple to implement.
+#+BEGIN_SRC C++
+template <typename T>
+Identity<T> make(T t) {
+    return Identity<T>{t};
+}
+
+#+END_SRC
+
+If I wanted a more fully general make that handled other Applicative generic types, it would be a bit more complicated. If I want something like:
+#+BEGIN_SRC C+
+    Identity<int>           i  = make<Identity>(1);
+    Identity<Identity<int>> ii = make<Identity>(i);
+#+END_SRC
+where I can parameterize the make function on the template type parameter, it's a bit more complicated, because we can't partially specialize a function, and we want to be able to on the Value type of the Identity template. The standard trick is to delegate to a class template that is partially specialized. The base template looks like
+
+#+BEGIN_SRC C++
+template <template <typename> typename Ap, typename Value>
+struct Applicative {
+    Ap<Value> make(Value const& v);
+    Ap<Value> make(Value&& v);
+};
+#+END_SRC
+
+specialized as
+#+BEGIN_SRC C++
+template <typename Value>
+struct Applicative<Identity, Value> {
+    typedef typename std::decay<Value>::type V;
+    Identity<V> make(V const& v) { return Identity<V>{v}; }
+    Identity<V> make(V&& v) { return Identity<V>{v}; }
+};
+#+END_SRC
+so that a ~make~ function looks like
+#+BEGIN_SRC C++
+template <template <typename> typename Ap, typename Value>
+Ap<typename std::decay<Value>::type> make(Value const& v) {
+    Applicative<Ap, Value> a;
+    return a.make(v);
+}
+
+#+END_SRC
+
+The base Applicative type allows writing generic code against different Applicative types. We'll come back to that in a bit.
+
+The ~ap~ function, takes a function lifted into the applicative and a value lifted into the applicative, and invokes the function on the value. For Identity, this is just function invocation. For other Applicatives it can be more complicated, but it is always some variation on calling functions. Since there's no way of getting a value out of the Identity, ~ap~ needs to be a friend or member.
+
+#+BEGIN_SRC C++
+template <typename T>
+class Identity {
+// ...
+    template <typename Func, typename U>
+    friend auto ap(Identity<Func> const& f, Identity<U> t)
+        -> Identity<std::invoke_result_t<Func, U>>;
+// ...
+};
+
+template <typename Func, typename U>
+auto ap(Identity<Func> const& f, Identity<U> t)
+    -> Identity<std::invoke_result_t<Func, U>> {
+    return std::invoke(f.t_, t.t_);
+}
+
+#+END_SRC
