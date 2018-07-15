@@ -227,7 +227,7 @@ int three(int a, int b) { return a + b; }
 
 TEST_F(IdentityTest, apTest) {
     using namespace identity;
-    auto f = [](int a) {return [a](int b){return a + b;};};
+    auto f = [](int a) {return [a](int b){return three(a,b);};};
     // f is of type int -> (int -> int)
     Identity<int> i3(3);
     auto partial = fmap(i3, f);

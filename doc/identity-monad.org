@@ -205,7 +205,7 @@ The core function (a * b) is also something that fmap can't deal with directly. 
 
 * Applicative and ~ap~
 
-Applicative is a little unnatural in C++. It works via partial application, which functional languages usually have a direct syntax for, while in C++ we have at best lambda capture, and at worst ~std::bind~, or the late, and unlamented, ~std::bind1st~. The idea, though, is that you can treat a function like (*), multiply, with the type src_Haskell[:exports code]{int -> int -> int} as a function that takes an int and returns a function with type src_Haskell[:exports code]{int -> int}. And it is useful to be able to do this with Functors.
+Applicative is a little unnatural in C++. It arises via partial application, which functional languages usually have a direct syntax for, while in C++ we have at best lambda capture, and at worst ~std::bind~, or the late, and unlamented, ~std::bind1st~. The idea, though, is that you can treat a function like (*), multiply, with the type src_Haskell[:exports code]{int -> int -> int} as a function that takes an int and returns a function with type src_Haskell[:exports code]{int -> int}. And it is useful to be able to do this with Functors.
 
 Applicative introduces two operators in Haskell, one is an infix version of fmap, and the other is new, and exists to deal with chaining multi-argument functions.
 
@@ -283,5 +283,50 @@ auto ap(Identity<Func> const& f, Identity<U> t)
     -> Identity<std::invoke_result_t<Func, U>> {
     return std::invoke(f.t_, t.t_);
 }
+
+#+END_SRC
+
+A function wrapped in an applicative context shows up when you partially apply a function to an applicative. That is if you had a function like add
+#+BEGIN_SRC C++
+auto add(int a, int b) -> int {return a + b;}
+#+END_SRC
+which takes two ints and returns an int, and you bind the first argument, returning a function from int to int
+#+BEGIN_SRC C++
+auto bind_add = [](int a) {return [a](int b){return add(a, b);};};
+#+END_SRC
+so instead of a function (int, int) -> int, we have a function (int) -> (int -> int)
+and we fmap that function, where fmap takes a function (a -> b) and gives you a function (a -> F<b>), so the fmap gives you a function a function (int -> F<(int -> int)>). And then that function is something we can use for ~ap~
+#+BEGIN_SRC C++
+    Identity<int> i3(3);
+    auto partial = fmap(i3, bind_add);
+    // partial is Identity<int -> int> (roughly)
+    Identity<int> i4(4);
+    Identity<int> k = ap(partial, i4);
+    ASSERT_EQ(Identity<int>(7), k);
+#+END_SRC
+
+In Haskell, where partial application comes built into the syntax of the language, this is all much more natural. The expressive power comes in cases where ~ap~ is more than just simple function application, as it is for the Identity applicative. Applicatives like Maybe or Expected can short circuit evaluation, for example. For multivalued functions, like List, the eventual result is the cartesian product of all the parameters, in a list.
+
+Another way of looking at ~ap~ involves the ~curry~ conversion of a multiparameter function, named after Haskell Curry. A ~curry~ converts a function from something called like ~f(a,b,c)~ to something called like ~f(a)(b)(c)~, where each call returns a function taking a single parameter, an the final result is the same.
+#+BEGIN_SRC C++
+    auto curry1 = [](auto func) {
+        return [func](int a) {
+            return [func, a](int b) {
+                return func(a, b);
+            };
+        };
+    };
+    auto g = curry1(three);
+    auto h = g(3);
+    ASSERT_EQ(7, h(4));
+#+END_SRC
+Here ~curry1~ unrolls a ~func(int, int) -> int~ into a function that takes an int and returns a function taking an int returning an int. It's a straightforward generalization of ~bind_add~ from above. We can tale the curried function g, fmap it over an Identity<int> and then apply that partially bound function to another Identity<int>, as so:
+
+#+BEGIN_SRC C++
+    Identity<int> id3(3);
+    Identity<int> id4(4);
+    auto partial2 = fmap(id3, g);
+    Identity<int> id7 = ap(partial2, id4);
+    ASSERT_EQ(Identity<int>(7), id7);
 
 #+END_SRC
