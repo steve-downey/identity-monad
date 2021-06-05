@@ -1,49 +1,42 @@
-cmake_minimum_required(VERSION 3.5)
-set(CMAKE_LEGACY_CYGWIN_WIN32 0)
+cmake_minimum_required(VERSION 3.10)
 
-project(IdentityMonad CXX)
+project(IdentityMonad VERSION 0.0.0 LANGUAGES CXX)
 
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
+enable_testing()
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_STANDARD 20)
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -ftemplate-backtrace-limit=0")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
-  set(CMAKE_CXX_FLAGS_DEBUG "-O0 -fno-inline -g3")
-  set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -g0 -DNDEBUG")
-endif()
+set(TARGETS_EXPORT_NAME ${CMAKE_PROJECT_NAME}Targets)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -ftemplate-backtrace-limit=0")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
-  set(LLVM_ROOT "$ENV{LLVM_ROOT}" CACHE PATH "Path to LLVM installation")
-  if(LLVM_ROOT)
-    message(STATUS "LLVM Root: ${LLVM_ROOT}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc++ -isystem ${LLVM_ROOT}/include/c++/v1")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L ${LLVM_ROOT}/lib -l c++ -l c++abi")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,${LLVM_ROOT}/lib")
-  else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-  endif()
-  set(CMAKE_CXX_FLAGS_DEBUG "-O0 -fno-inline -g3 -fstack-protector-all")
-  set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -g0 -DNDEBUG")
-endif()
+add_subdirectory(extern)
+add_subdirectory(src)
 
-if(NOT CMAKE_CROSSCOMPILING)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-endif()
+include(GNUInstallDirs)
 
+set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake)
 
-# A directory to find Google Test sources.
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/googletest/CMakeLists.txt")
-  add_subdirectory(googletest EXCLUDE_FROM_ALL)
-  add_subdirectory(tests)
-  enable_testing()
-else()
-  message("GTEST Not Found at ${CMAKE_CURRENT_SOURCE_DIR}/googletest/CMakeLists.txt")
-endif()
+install(
+  EXPORT ${TARGETS_EXPORT_NAME}
+  NAMESPACE ${CMAKE_PROJECT_NAME}
+  DESTINATION ${INSTALL_CONFIGDIR}
+  )
 
-add_subdirectory(lib)
-add_subdirectory(main)
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(
+    "cmake/Config.cmake.in"
+    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}Config.cmake
+    INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
+)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${INSTALL_CONFIGDIR}
+)
